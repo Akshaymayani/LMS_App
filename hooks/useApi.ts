@@ -13,6 +13,7 @@ import type {
   RegisterRequest,
 } from '@/types';
 import { mapProductToCourse, mapUserToInstructor } from '@/utils/course-mapper';
+import { extractErrorMessage, getFallbackPaginatedResponse, safeGet } from '@/utils/safe-property-access';
 import {
   InfiniteData,
   useInfiniteQuery,
@@ -21,6 +22,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { useMemo } from 'react';
+import { useNetwork } from './useNetwork';
 
 const FIVE_MINUTES = 1000 * 60 * 5;
 const FALLBACK_INSTRUCTOR: Instructor = {
@@ -75,14 +77,32 @@ function getCachedProduct(
   return null;
 }
 
+/**
+ * Wrapper to check network before making API calls
+ */
+async function withNetworkCheck<T>(
+  fn: () => Promise<T>,
+  fallback: T,
+  errorMessage: string
+): Promise<T> {
+  return fn().catch((error) => {
+    console.error(`[API Error] ${errorMessage}:`, error);
+    throw error;
+  });
+}
+
 export function useLoginMutation() {
   const dispatch = useAppDispatch();
+  const { isConnected } = useNetwork();
 
   return useMutation({
-    mutationFn: (payload: LoginRequest) => authApi.login(payload),
+    mutationFn: async (payload: LoginRequest) => {
+      if (!isConnected) {
+        throw new Error('No internet connection. Please check your network and try again.');
+      }
+      return authApi.login(payload);
+    },
     onSuccess: async (response) => {
-      console.log("LOGIN RESPONSE ", response.data);
-
       if (response.success && response.data) {
         await persistSession(response.data);
         dispatch(setSession(response.data));
@@ -100,7 +120,16 @@ export function useLoginMutation() {
           })
         );
       }
-    }
+    },
+    onError: (error) => {
+      const message = extractErrorMessage(error);
+      dispatch(
+        showSnackbar({
+          message: message || 'Login failed. Please try again.',
+          tone: 'error',
+        })
+      );
+    },
   });
 }
 
@@ -110,25 +139,23 @@ export function useRegisterMutation() {
   return useMutation({
     mutationFn: (payload: RegisterRequest) => authApi.register(payload),
     onSuccess: async (response) => {
-      console.log("REGISTER RESPONSE ", response);
-      
       if (response.success && response.data) {
-      await persistSession(response.data);
-      dispatch(setSession(response.data));
-      dispatch(
-        showSnackbar({
-          message: 'Account created. Let’s start the first sprint.',
-          tone: 'success',
-        })
-      );
-    }else {
-      dispatch(
-        showSnackbar({
-          message: response.message || 'Registration failed. Please try again.',
-          tone: 'error',
-        })
-      );
-    }
+        await persistSession(response.data);
+        dispatch(setSession(response.data));
+        dispatch(
+          showSnackbar({
+            message: 'Account created. Let’s start the first sprint.',
+            tone: 'success',
+          })
+        );
+      } else {
+        dispatch(
+          showSnackbar({
+            message: response.message || 'Registration failed. Please try again.',
+            tone: 'error',
+          })
+        );
+      }
     },
   });
 }
@@ -150,28 +177,60 @@ export function useUploadAvatarMutation() {
 }
 
 export function useInstructorsQuery(limit = 18) {
+  const { isConnected } = useNetwork();
+
   return useQuery({
     queryKey: ['instructors', limit],
     queryFn: async () => {
+      if (!isConnected) {
+        console.warn('[useInstructorsQuery] No network connection');
+        return [];
+      }
 
       const response = await catalogApi.getInstructors(1, limit);
-      return response?.data?.data.map(mapUserToInstructor);
+
+      // Safely extract data
+      if (!response.success || !response.data?.data) {
+        console.warn('[useInstructorsQuery] Invalid response:', response);
+        return [];
+      }
+
+      return Array.isArray(response.data.data)
+        ? response.data.data.map(mapUserToInstructor)
+        : [];
     },
     staleTime: FIVE_MINUTES,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 }
 
 export function useFeaturedCoursesQuery(limit = 6) {
+  const { isConnected } = useNetwork();
   const progressMap = useAppSelector((state) => state.progress.byCourseId);
   const instructorsQuery = useInstructorsQuery(limit * 2);
 
   const productsQuery = useQuery({
     queryKey: ['products', 'featured'],
     queryFn: async () => {
+      if (!isConnected) {
+        console.warn('[useFeaturedCoursesQuery] No network connection');
+        return [];
+      }
+
       const response = await catalogApi.getProducts(1, limit);
-      return response?.data?.data;
+
+      // Safely extract data with fallback
+      if (!response.success || !response.data?.data) {
+        console.warn('[useFeaturedCoursesQuery] Invalid response:', response);
+        return [];
+      }
+
+      return Array.isArray(response.data.data) ? response.data.data : [];
     },
     staleTime: FIVE_MINUTES,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   const courses = useMemo(
@@ -187,22 +246,65 @@ export function useFeaturedCoursesQuery(limit = 6) {
 }
 
 export function useInfiniteCoursesQuery(limit = 10) {
+  const { isConnected } = useNetwork();
   const progressMap = useAppSelector((state) => state.progress.byCourseId);
   const instructorsQuery = useInstructorsQuery(limit * 3);
 
   const productsQuery = useInfiniteQuery({
     queryKey: ['products', 'infinite', limit],
     queryFn: async ({ pageParam = 1 }) => {
+      if (!isConnected) {
+        console.warn(`[useInfiniteCoursesQuery] No network connection at page ${pageParam}`);
+        return getFallbackPaginatedResponse<Product>();
+      }
+
       const response = await catalogApi.getProducts(pageParam, limit);
-      return response.data;
+
+      // Safely extract paginated data with fallback
+      if (!response.success || !response.data) {
+        console.warn(`[useInfiniteCoursesQuery] Invalid response at page ${pageParam}:`, response);
+        return getFallbackPaginatedResponse<Product>();
+      }
+
+      const paginatedData = safeGet(response, 'data', getFallbackPaginatedResponse<Product>());
+      const pageData = safeGet<any[]>(paginatedData, 'data', []);
+      console.log(`[useInfiniteCoursesQuery] Page ${pageParam} loaded:`, {
+        page: safeGet(paginatedData, 'page'),
+        nextPage: safeGet(paginatedData, 'nextPage'),
+        totalPages: safeGet(paginatedData, 'totalPages'),
+        itemsCount: Array.isArray(pageData) ? pageData.length : 0,
+      });
+      return paginatedData;
     },
     initialPageParam: 1,
-    getNextPageParam: (lastPage) => (lastPage?.nextPage ? lastPage.page + 1 : undefined),
+    getNextPageParam: (lastPage) => {
+      // Safely check pagination - the field is 'nextPage' not 'hasNextPage'
+      const nextPage = safeGet(lastPage, 'nextPage', false);
+      const currentPage = safeGet(lastPage, 'page', 0);
+      
+      // nextPage can be boolean or number
+      const hasMorePages = typeof nextPage === 'number' ? nextPage > 0 : Boolean(nextPage);
+      
+      if (hasMorePages) {
+        const nextPageNumber = typeof nextPage === 'number' ? nextPage : currentPage! + 1;
+        // console.log(`[useInfiniteCoursesQuery] Will fetch page ${nextPageNumber}`);
+        return nextPageNumber;
+      }
+      return undefined;
+    },
     staleTime: FIVE_MINUTES,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   const courses = useMemo(() => {
-    const flattenedProducts = productsQuery.data?.pages.flatMap((page) => page.data) ?? [];
+    if (!productsQuery.data?.pages || !Array.isArray(productsQuery.data.pages)) {
+      return [];
+    }
+    
+    const flattenedProducts = productsQuery.data.pages
+      .flatMap((page) => safeGet<Product[]>(page, 'data', []))
+      .filter(Boolean) ?? [];
     return mapCourses(flattenedProducts, instructorsQuery.data ?? [], progressMap);
   }, [productsQuery.data, instructorsQuery.data, progressMap]);
 
@@ -214,6 +316,7 @@ export function useInfiniteCoursesQuery(limit = 10) {
 }
 
 export function useCourseDetailQuery(courseId: number) {
+  const { isConnected } = useNetwork();
   const progressMap = useAppSelector((state) => state.progress.byCourseId);
   const queryClient = useQueryClient();
   const instructorsQuery = useInstructorsQuery();
@@ -221,10 +324,15 @@ export function useCourseDetailQuery(courseId: number) {
   const productQuery = useQuery({
     queryKey: ['course', courseId],
     queryFn: async () => {
+      // Try to get from cache first
       const cached = getCachedProduct(courseId, queryClient);
-
       if (cached) {
         return cached;
+      }
+
+      // If no network, throw error for offline state
+      if (!isConnected) {
+        throw new Error('No internet connection. Please check your network and try again.');
       }
 
       const response = await catalogApi.getProductById(courseId);
@@ -237,15 +345,23 @@ export function useCourseDetailQuery(courseId: number) {
     },
     enabled: Number.isFinite(courseId) && courseId > 0,
     staleTime: FIVE_MINUTES,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   const course = useMemo<Course | null>(() => {
     if (!productQuery?.data) {
       return null;
     }
-    return (
-      mapCourses([productQuery?.data], instructorsQuery.data ?? [], progressMap)[0] ?? null
+
+    // Safely map the product to course
+    const mappedCourses = mapCourses(
+      [productQuery.data],
+      instructorsQuery.data ?? [],
+      progressMap
     );
+
+    return mappedCourses[0] ?? null;
   }, [instructorsQuery.data, productQuery.data, progressMap]);
 
   return {

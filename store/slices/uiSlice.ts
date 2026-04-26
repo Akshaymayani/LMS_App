@@ -27,7 +27,7 @@ const uiSlice = createSlice({
           visible: true,
           message: 'You are offline. Saved content stays available locally.',
           tone: 'error',
-          persistent: true,
+          // persistent: true,
         };
         return;
       }

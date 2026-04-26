@@ -4,6 +4,7 @@ import { AppText } from '@/components/app/app-text';
 import { Radius, makeShadow } from '@/constants/theme';
 import { useAppTheme } from '@/hooks/use-app-theme';
 import { useLoginMutation } from '@/hooks/useApi';
+import { loginPageStyles } from '@/styles/loginPageStyles';
 import { loginSchema, type LoginFormValues } from '@/utils/validation';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -15,15 +16,14 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  StyleSheet,
-  View,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function LoginScreen() {
   const { colors, scheme } = useAppTheme();
   const loginMutation = useLoginMutation();
-
+  const styles = loginPageStyles();
   const {
     control,
     handleSubmit,
@@ -43,7 +43,7 @@ export default function LoginScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : "height"}
         style={styles.flex}
       >
         <ScrollView
@@ -67,8 +67,7 @@ export default function LoginScreen() {
                 Learn in motion. Ship skills faster.
               </AppText>
               <AppText style={styles.heroBody} tone="inverse">
-                React Query-backed learning paths, gesture-rich cards, offline bookmarks, and
-                polished dark/light themes in one focused mobile stack.
+               Unlock your potential with guided learning.
               </AppText>
               <View style={styles.heroStatRow}>
                 <MiniBadge label="Secure auth" value="JWT" />
@@ -160,7 +159,13 @@ export default function LoginScreen() {
 
 function MiniBadge({ label, value }: { label: string; value: string }) {
   return (
-    <View style={styles.badge}>
+    <View style={{
+      backgroundColor: 'rgba(255,255,255,0.14)',
+      borderRadius: Radius.lg,
+      minWidth: 108,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+    }}>
       <AppText variant="caption" tone="inverse">
         {label}
       </AppText>
@@ -170,69 +175,3 @@ function MiniBadge({ label, value }: { label: string; value: string }) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-  },
-  flex: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: 20,
-  },
-  heroStack: {
-    gap: 20,
-  },
-  heroCard: {
-    borderRadius: Radius.xl,
-    gap: 16,
-    overflow: 'hidden',
-    padding: 24,
-  },
-  heroEyebrow: {
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.16)',
-    borderRadius: Radius.pill,
-    flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  heroBody: {
-    maxWidth: 540,
-  },
-  heroStatRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  badge: {
-    backgroundColor: 'rgba(255,255,255,0.14)',
-    borderRadius: Radius.lg,
-    minWidth: 108,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  formCard: {
-    borderRadius: Radius.xl,
-    borderWidth: 1,
-    gap: 18,
-    padding: 22,
-  },
-  formHeader: {
-    gap: 8,
-  },
-  formFields: {
-    gap: 16,
-  },
-  switchLink: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 8,
-    justifyContent: 'center',
-  },
-});

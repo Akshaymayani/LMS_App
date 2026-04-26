@@ -9,10 +9,12 @@ export function StatCard({
   icon,
   label,
   value,
+  containerStyles,
 }: {
   icon: keyof typeof MaterialIcons.glyphMap;
   label: string;
   value: string;
+  containerStyles?: any;
 }) {
   const { colors } = useAppTheme();
 
@@ -20,6 +22,7 @@ export function StatCard({
     <View
       style={[
         styles.card,
+        containerStyles,
         {
           backgroundColor: colors.surface,
           borderColor: colors.border,
@@ -30,7 +33,7 @@ export function StatCard({
       <View style={[styles.iconShell, { backgroundColor: colors.surfaceRaised }]}>
         <MaterialIcons color={colors.accent} name={icon} size={20} />
       </View>
-      <AppText variant="caption" tone="muted">
+      <AppText variant="caption" tone="muted" style={{ textAlign: 'center' }}>
         {label}
       </AppText>
       <AppText variant="headline">{value}</AppText>
@@ -44,8 +47,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     flex: 1,
     gap: 10,
-    minHeight: 118,
-    padding: 16,
+    // minHeight: 118,
+    padding: 12,
+
   },
   iconShell: {
     alignItems: 'center',

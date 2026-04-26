@@ -2,13 +2,16 @@ import { clearStoredSession, getStoredSession } from '@/services/auth-storage';
 import { store } from '@/store';
 import { clearSessionState } from '@/store/slices/authSlice';
 import { showSnackbar } from '@/store/slices/uiSlice';
+import { isNetworkError } from '@/utils/safe-property-access';
 import axios, { type AxiosError, type AxiosInstance } from 'axios';
 
 const API_BASE = 'https://api.freeapi.app/api/v1';
+const REQUEST_TIMEOUT = 15000;
 
 export class ApiClientError extends Error {
   statusCode?: number;
   details?: unknown;
+  isNetworkError?: boolean;
 }
 
 function extractMessage(error: AxiosError<{ message?: string }>) {
@@ -19,19 +22,24 @@ function extractMessage(error: AxiosError<{ message?: string }>) {
   }
 
   if (!error.response) {
-    return 'Unable to reach FreeAPI. Check your internet connection.';
+    return 'Network connection lost. Please check your internet and try again.';
   }
 
   if (error.response.status >= 500) {
-    return 'FreeAPI is temporarily unavailable. Please try again.';
+    return 'Server is temporarily unavailable. Please try again later.';
   }
 
-  return error.message || 'Something went wrong while talking to FreeAPI.';
+  if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
+    return 'Request timed out. Please check your connection and try again.';
+  }
+
+  return error.message || 'Something went wrong while connecting to the server.';
 }
 
 function normalizeAxiosError(error: AxiosError<{ message?: string }>) {
   const normalized = new ApiClientError(extractMessage(error));
   normalized.statusCode = error.response?.status;
+  normalized.isNetworkError = isNetworkError(error);
   normalized.details = error.response?.data ?? error.toJSON();
 
   return normalized;
@@ -39,7 +47,7 @@ function normalizeAxiosError(error: AxiosError<{ message?: string }>) {
 
 export const axiosInstance: AxiosInstance = axios.create({
   baseURL: API_BASE,
-  timeout: 15000,
+  timeout: REQUEST_TIMEOUT,
   headers: {
     Accept: 'application/json',
     'Content-Type': 'application/json',
@@ -53,22 +61,38 @@ export function initializeAxiosInterceptors() {
     return;
   }
 
-  axiosInstance.interceptors.request.use(async (config) => {
-    const stateToken = store.getState().auth.token;
-    const token = stateToken ?? (await getStoredSession()).token;
+  // Request interceptor - add auth token and check network
+  axiosInstance.interceptors.request.use(
+    async (config) => {
+      const stateToken = store.getState().auth.token;
+      const token = stateToken ?? (await getStoredSession()).token;
 
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+
+      return config;
+    },
+    (error) => {
+      return Promise.reject(error);
     }
+  );
 
-    return config;
-  });
-
+  // Response interceptor - handle errors comprehensively
   axiosInstance.interceptors.response.use(
-    (response) => response,
+    (response) => {
+      // Ensure response data is valid before returning
+      if (!response.data) {
+        return Promise.reject(
+          new ApiClientError('Received empty response from server')
+        );
+      }
+      return response;
+    },
     async (error: AxiosError<{ message?: string }>) => {
       const normalizedError = normalizeAxiosError(error);
 
+      // Handle 401 Unauthorized - session expired
       if (error.response?.status === 401) {
         await clearStoredSession();
         store.dispatch(clearSessionState());
@@ -78,20 +102,31 @@ export function initializeAxiosInterceptors() {
             tone: 'error',
           })
         );
-      } else if (!error.response) {
+      }
+      // Handle network errors
+      else if (normalizedError.isNetworkError) {
+        console.warn('[Network Error]', normalizedError.message);
         store.dispatch(
           showSnackbar({
             message: normalizedError.message,
             tone: 'error',
           })
         );
-      } else if (error.response.status >= 500) {
+      }
+      // Handle server errors (5xx)
+      else if (error.response?.status && error.response.status >= 500) {
+        console.warn('[Server Error]', normalizedError.message);
         store.dispatch(
           showSnackbar({
             message: normalizedError.message,
             tone: 'error',
           })
         );
+      }
+      // Handle client errors (4xx) - but not 401 which is handled above
+      else if (error.response?.status && error.response.status >= 400) {
+        console.warn('[Client Error]', normalizedError.message);
+        // Don't show snackbar for every 4xx error, let the caller handle it
       }
 
       return Promise.reject(normalizedError);

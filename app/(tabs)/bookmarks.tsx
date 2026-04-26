@@ -33,6 +33,7 @@ export default function BookmarksScreen() {
         contentContainerStyle={styles.contentContainer}
         data={courses}
         estimatedItemSize={360}
+          recycleItems={true}
         keyExtractor={(item) => `bookmark-${item.id!}`}
         ListEmptyComponent={EmptyCard}
         ListHeaderComponent={() => <HeaderCard cardSize={courses?.length || 0} />}

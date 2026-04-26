@@ -58,7 +58,7 @@ export class NotificationService {
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-        seconds: 2,
+        seconds: 15,
         channelId: 'new_emails',
       },
     });

@@ -109,9 +109,9 @@ export default function ProfileScreen() {
     }
 
     const asset = result.assets[0];
-    const previewUser = { ...user, avatar: asset.uri };
+    // const previewUser = { ...user, avatar: asset.uri };
 
-    dispatch(updateProfile(previewUser));
+    // dispatch(updateProfile(previewUser));
     await persistSession({
       accessToken: token,
       user: previewUser,
@@ -123,9 +123,6 @@ export default function ProfileScreen() {
         mimeType: asset.mimeType,
         uri: asset.uri,
       });
-      console.log("Respone of IMAGE UPLOAD",response);
-      
-
       const avatarFromApi = response.data?.avatar?.url?? "";
       const nextUser = {
         ...previewUser,
@@ -202,9 +199,9 @@ export default function ProfileScreen() {
         </LinearGradient>
 
         <View style={styles.statsRow}>
-          <StatCard icon="bookmark" label="Saved courses" value={String(bookmarkCount)} />
-          <StatCard icon="play-circle-outline" label="Active tracks" value={String(activeCourses)} />
-          <StatCard icon="auto-graph" label="Average progress" value={`${averageProgress}%`} />
+          <StatCard icon="bookmark" label="Saved courses" value={String(bookmarkCount)} containerStyles={styles.customStackStyles} />
+          <StatCard icon="play-circle-outline" label="Active tracks" value={String(activeCourses)} containerStyles={styles.customStackStyles} />
+          <StatCard icon="auto-graph" label="Average progress" value={`${averageProgress}%`} containerStyles={styles.customStackStyles} />
         </View>
 
         <View

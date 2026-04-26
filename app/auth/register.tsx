@@ -1,9 +1,10 @@
 import { AppButton } from '@/components/app/app-button';
 import { AppInput } from '@/components/app/app-input';
 import { AppText } from '@/components/app/app-text';
-import { Radius, makeShadow } from '@/constants/theme';
+import { makeShadow } from '@/constants/theme';
 import { useAppTheme } from '@/hooks/use-app-theme';
 import { useRegisterMutation } from '@/hooks/useApi';
+import { registerPageStyles } from '@/styles/registerPageStyles';
 import { registerSchema, type RegisterFormValues } from '@/utils/validation';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -15,14 +16,14 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  StyleSheet,
-  View,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function RegisterScreen() {
   const { colors } = useAppTheme();
   const registerMutation = useRegisterMutation();
+  const styles = registerPageStyles();
 
   const {
     control,
@@ -47,7 +48,7 @@ export default function RegisterScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : "height"}
         style={styles.flex}
       >
         <ScrollView
@@ -71,7 +72,7 @@ export default function RegisterScreen() {
             </AppText>
             <AppText tone="inverse">
               Register once and the app keeps your theme choices, bookmarked content, avatar, and
-              WebView progress synced across sessions.
+              course progress synced across sessions.
             </AppText>
           </LinearGradient>
 
@@ -181,51 +182,3 @@ export default function RegisterScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-  },
-  flex: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    gap: 20,
-    justifyContent: 'center',
-    padding: 20,
-  },
-  hero: {
-    borderRadius: Radius.xl,
-    gap: 16,
-    padding: 24,
-  },
-  heroLabel: {
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.16)',
-    borderRadius: Radius.pill,
-    flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  formCard: {
-    borderRadius: Radius.xl,
-    borderWidth: 1,
-    gap: 18,
-    padding: 22,
-  },
-  formHeader: {
-    gap: 8,
-  },
-  fieldGroup: {
-    gap: 16,
-  },
-  switchLink: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 8,
-    justifyContent: 'center',
-  },
-});

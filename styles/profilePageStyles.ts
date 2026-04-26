@@ -45,6 +45,10 @@ export const profileScreenStyles = () => (
             flexDirection: 'row',
             gap: 12,
         },
+        customStackStyles:{
+            justifyContent:"center",
+            alignItems:"center",
+        },
         panel: {
             borderRadius: Radius.xl,
             borderWidth: 1,
