@@ -9,6 +9,7 @@ import { useAppTheme } from '@/hooks/use-app-theme';
 import { useFeaturedCoursesQuery, useInfiniteCoursesQuery } from '@/hooks/useApi';
 import { useBookmarks } from '@/hooks/useBookmarks';
 import { useNetwork } from '@/hooks/useNetwork';
+import { catalogApi } from '@/services/api';
 import { useAppSelector } from '@/store/hooks';
 import CatalogPageStyles from '@/styles/CatalogPageStyles';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
@@ -34,10 +35,28 @@ export default function CoursesScreen() {
   const featuredQuery = useFeaturedCoursesQuery(4);
   const catalogQuery = useInfiniteCoursesQuery(10);
   const [searchText, setSearchText] = useState('');
+  const [productImage, setProductImage] = useState<string | null>(null);
   const deferredSearch = useDeferredValue(searchText);
   const progressMap = useAppSelector((state) => state.progress.byCourseId);
   const styles = useMemo(() => CatalogPageStyles(), []);
-  
+
+
+  useEffect(() => {
+
+    const getProductImage = async () => {
+      try {
+        const response: any = await catalogApi.getProductImage();
+        console.log("Product image response:", response);
+        // setProductImage(response);
+
+      } catch (error) {
+        console.error("Error fetching product image:", error);
+      }
+    }
+
+    getProductImage();
+
+  }, [])
   useEffect(() => {
     if (catalogQuery?.courses) {
       catalogQuery?.courses?.forEach((course) => syncBookmarkedCourse(course));
@@ -302,7 +321,7 @@ export default function CoursesScreen() {
               isError: catalogQuery.isError,
               error: catalogQuery.error,
             });
-            
+
             if (catalogQuery.hasNextPage && !catalogQuery.isFetchingNextPage) {
               // console.log("[Pagination] Fetching next page...");
               void catalogQuery.fetchNextPage();

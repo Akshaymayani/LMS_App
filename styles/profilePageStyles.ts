@@ -75,6 +75,23 @@ export const profileScreenStyles = () => (
             gap: 6,
             paddingBottom: 14,
         },
+        settingsRow: {
+            alignItems: 'center',
+            borderBottomWidth: StyleSheet.hairlineWidth,
+            flexDirection: 'row',
+            gap: 14,
+            justifyContent: 'space-between',
+            minHeight: 64,
+            paddingBottom: 14,
+        },
+        settingsButton: {
+            borderBottomWidth: 0,
+            paddingBottom: 0,
+        },
+        settingsCopy: {
+            flex: 1,
+            gap: 4,
+        },
     })
 )
 

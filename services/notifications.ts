@@ -14,6 +14,10 @@ Notifications.setNotificationHandler({
 });
 
 export class NotificationService {
+  static async cancelScheduledNotifications() {
+    await Notifications.cancelAllScheduledNotificationsAsync();
+  }
+
   static async requestPermissions() {
     const { status } = await Notifications.requestPermissionsAsync();
     return status === 'granted';

@@ -1,18 +1,18 @@
 import { axiosInstance } from '@/services/axios-instance';
 import type {
-    AuthPayload,
-    AvatarUploadPayload,
-    FreeApiResponse,
-    LoginRequest,
-    PaginatedResponse,
-    Product,
-    RandomUser,
-    RegisterRequest,
+  AuthPayload,
+  AvatarUploadPayload,
+  FreeApiResponse,
+  LoginRequest,
+  PaginatedResponse,
+  Product,
+  RandomUser,
+  RegisterRequest,
 } from '@/types';
 import {
-    extractErrorMessage,
-    getFallbackPaginatedResponse,
-    safeGet
+  extractErrorMessage,
+  getFallbackPaginatedResponse,
+  safeGet
 } from '@/utils/safe-property-access';
 
 type UploadableAsset = {
@@ -212,6 +212,12 @@ export const catalogApi = {
         success: false,
       };
     }
+  },
+
+
+  async getProductImage(){
+    const response = await axiosInstance.get('https://api.freeapi.app/api/v1/kitchen-sink/image/png');
+    return response;
   },
 
   async getProductById(courseId: number) {

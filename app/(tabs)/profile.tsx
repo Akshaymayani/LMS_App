@@ -7,9 +7,11 @@ import { makeShadow } from '@/constants/theme';
 import { useAppTheme } from '@/hooks/use-app-theme';
 import { useLogoutAction, useUploadAvatarMutation } from '@/hooks/useApi';
 import { persistSession } from '@/services/auth-storage';
+import { NotificationService } from '@/services/notifications';
 import type { RootState } from '@/store';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { updateProfile } from '@/store/slices/authSlice';
+import { setNotificationsEnabled } from '@/store/slices/preferencesSlice';
 import { showSnackbar } from '@/store/slices/uiSlice';
 import { profileScreenStyles } from '@/styles/profilePageStyles';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
@@ -17,7 +19,8 @@ import { createSelector } from '@reduxjs/toolkit';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Alert, ScrollView, View } from 'react-native';
+import { router } from 'expo-router';
+import { Alert, Pressable, ScrollView, Switch, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const selectUser = (state: RootState) => state.auth.user;
@@ -54,6 +57,9 @@ export default function ProfileScreen() {
   const dispatch = useAppDispatch();
   const user = useAppSelector(selectUser);
   const token = useAppSelector(selectToken);
+  const notificationsEnabled = useAppSelector(
+    (state) => state.preferences.notificationsEnabled
+  );
   const { bookmarkCount, activeCourses, averageProgress } = useAppSelector(selectProfileStats);
   const uploadAvatarMutation = useUploadAvatarMutation();
   const logout = useLogoutAction();
@@ -109,7 +115,7 @@ export default function ProfileScreen() {
     }
 
     const asset = result.assets[0];
-    // const previewUser = { ...user, avatar: asset.uri };
+    const previewUser = { ...user, avatar: asset.uri };
 
     // dispatch(updateProfile(previewUser));
     await persistSession({
@@ -149,6 +155,43 @@ export default function ProfileScreen() {
         })
       );
     }
+  };
+
+  const handleNotificationToggle = async (enabled: boolean) => {
+    dispatch(setNotificationsEnabled(enabled));
+
+    if (!enabled) {
+      await NotificationService.cancelScheduledNotifications();
+      dispatch(
+        showSnackbar({
+          message: 'Notifications are turned off.',
+          tone: 'success',
+        })
+      );
+      return;
+    }
+
+    const hasPermission = await NotificationService.requestPermissions();
+
+    if (!hasPermission) {
+      dispatch(setNotificationsEnabled(false));
+      dispatch(
+        showSnackbar({
+          message: 'Notification permission was not granted.',
+          tone: 'error',
+        })
+      );
+      return;
+    }
+
+    await NotificationService.scheduleReminderNotification();
+    await NotificationService.scheduleTestNotification();
+    dispatch(
+      showSnackbar({
+        message: 'Notifications are turned on.',
+        tone: 'success',
+      })
+    );
   };
 
   return (
@@ -226,6 +269,63 @@ export default function ProfileScreen() {
             </View>
           </View>
           <ThemeToggle />
+        </View>
+
+        <View
+          style={[
+            styles.panel,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+            },
+            makeShadow(colors.shadow, 10),
+          ]}
+        >
+          <View style={styles.panelHeader}>
+            <View style={[styles.iconShell, { backgroundColor: colors.surfaceRaised }]}>
+              <MaterialIcons color={colors.accent} name="settings" size={22} />
+            </View>
+            <View style={styles.panelCopy}>
+              <AppText variant="headline">Preferences</AppText>
+              <AppText tone="muted">Manage notifications and the launcher icon.</AppText>
+            </View>
+          </View>
+
+          <View style={[styles.settingsRow, { borderBottomColor: colors.border }]}>
+            <View style={styles.settingsCopy}>
+              <AppText>Notifications</AppText>
+              <AppText variant="caption" tone="muted">
+                Receive learning reminders on this device.
+              </AppText>
+            </View>
+            <Switch
+              accessibilityLabel="Toggle notifications"
+              onValueChange={handleNotificationToggle}
+              thumbColor={notificationsEnabled ? colors.accent : colors.surfaceRaised}
+              trackColor={{ false: colors.border, true: colors.accentSoft }}
+              value={notificationsEnabled}
+            />
+          </View>
+
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push('/app-icon' as never)}
+            style={({ pressed }) => [
+              styles.settingsRow,
+              styles.settingsButton,
+              {
+                opacity: pressed ? 0.76 : 1,
+              },
+            ]}
+          >
+            <View style={styles.settingsCopy}>
+              <AppText>App icons</AppText>
+              <AppText variant="caption" tone="muted">
+                Choose the light or dark launcher icon.
+              </AppText>
+            </View>
+            <MaterialIcons color={colors.textMuted} name="chevron-right" size={24} />
+          </Pressable>
         </View>
 
         <View

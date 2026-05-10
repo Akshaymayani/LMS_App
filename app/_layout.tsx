@@ -18,6 +18,9 @@ import 'react-native-reanimated';
 function RootNavigator() {
   const dispatch = useAppDispatch();
   const auth = useAppSelector((state) => state.auth);
+  const notificationsEnabled = useAppSelector(
+    (state) => state.preferences.notificationsEnabled
+  );
   const { colors, navigationTheme, scheme } = useAppTheme();
   const isAuthenticated = hasValidAuthSession(auth);
 
@@ -26,12 +29,19 @@ function RootNavigator() {
   useEffect(() => {
     dispatch(hydrateAuth());
     NotificationService.updateLastOpenTime();
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (!notificationsEnabled) {
+      NotificationService.cancelScheduledNotifications();
+      return;
+    }
+
     NotificationService.requestPermissions();
     NotificationService.scheduleReminderNotification();
     // NotificationService.scheduleBookmarkNotification();
     NotificationService.scheduleTestNotification();
-
-  }, [dispatch]);
+  }, [notificationsEnabled]);
 
   if (!auth.hydrated) {
     return (
@@ -83,6 +93,15 @@ function RootNavigator() {
                 headerShown: true,
                 headerBackTitle: 'Back',
                 // headerBackTitleVisible: true,
+              }}
+            />
+            <Stack.Screen
+              name="app-icon"
+              options={{
+                title: 'App Icon',
+                headerShown: true,
+                headerBackTitle: 'Profile',
+                headerTitleAlign: 'center',
               }}
             />
             <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Details' }} />
