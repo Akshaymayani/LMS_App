@@ -19,6 +19,8 @@ interface CourseCardProps {
   course: Course;
   index?: number;
   bookmarked: boolean;
+  productImage?: string | null;
+  enableAnimation?: boolean;
   onPress: () => void;
   onToggleBookmark: () => void;
 }
@@ -29,6 +31,8 @@ function CourseCardComponent({
   course,
   index = 0,
   bookmarked,
+  productImage,
+  enableAnimation = true,
   onPress,
   onToggleBookmark,
 }: CourseCardProps) {
@@ -38,6 +42,7 @@ function CourseCardComponent({
   const scale = useSharedValue(1);
 
   const panGesture = Gesture.Pan()
+    .enabled(enableAnimation)
     .onBegin(() => {
       scale.value = withSpring(0.985, { damping: 14, stiffness: 180 });
     })
@@ -78,7 +83,7 @@ function CourseCardComponent({
         ]}
       >
         <View style={[styles.glow, { backgroundColor: colors.glow }]} />
-        <Image source={{ uri: course.image }} style={styles.cover} contentFit="cover" transition={180} />
+        <Image source={{ uri: productImage || course.image }} style={styles.cover} contentFit="cover" transition={180} />
         <View style={styles.content}>
           <View style={styles.topRow}>
             <View style={[styles.levelBadge, { backgroundColor: colors.surfaceRaised }]}>
@@ -229,6 +234,8 @@ export const CourseCard = React.memo(CourseCardComponent, (prevProps, nextProps)
   return (
     prevProps.course.id === nextProps.course.id &&
     prevProps.bookmarked === nextProps.bookmarked &&
-    prevProps.index === nextProps.index
+    prevProps.index === nextProps.index &&
+    prevProps.productImage === nextProps.productImage &&
+    prevProps.enableAnimation === nextProps.enableAnimation
   );
 });

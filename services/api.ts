@@ -42,7 +42,8 @@ export const authApi = {
         '/users/login',
         payload
       );
-      
+
+      console.log("Login response:", response);
       // Ensure we have a valid response structure
       if (!response.data || !response.data.success) {
         return {
@@ -55,6 +56,7 @@ export const authApi = {
 
       return response.data;
     } catch (error) {
+      console.error("Login error:", error);
       return handleApiError(error, 'Login');
     }
   },
@@ -215,9 +217,32 @@ export const catalogApi = {
   },
 
 
-  async getProductImage(){
-    const response = await axiosInstance.get('https://api.freeapi.app/api/v1/kitchen-sink/image/png');
-    return response;
+  async getProductImage() {
+    try {
+      const response = await axiosInstance.get('https://api.freeapi.app/api/v1/kitchen-sink/image/png', {
+        responseType: 'blob',
+        headers: {
+          Accept: 'image/png'
+        }
+      });
+      
+      return await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          let base64data = reader.result as string;
+          // React Native Axios Blob often defaults to octet-stream; fix it to image/png
+          if (base64data.startsWith('data:application/octet-stream;')) {
+            base64data = base64data.replace('data:application/octet-stream;', 'data:image/png;');
+          }
+          resolve(base64data);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(response.data);
+      });
+    } catch (error) {
+      console.error('[getProductImage] Error:', error);
+      return null;
+    }
   },
 
   async getProductById(courseId: number) {

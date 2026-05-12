@@ -17,19 +17,19 @@ const ICON_OPTIONS: {
   title: string;
   description: string;
 }[] = [
-  {
-    icon: 'Light',
-    materialIcon: 'wb-sunny',
-    title: 'Light icon',
-    description: 'Bright launcher icon for a lighter home screen.',
-  },
-  {
-    icon: 'Dark',
-    materialIcon: 'dark-mode',
-    title: 'Dark icon',
-    description: 'Dark launcher icon for a quieter home screen.',
-  },
-];
+    {
+      icon: 'Light',
+      materialIcon: 'wb-sunny',
+      title: 'Light icon',
+      description: 'Bright launcher icon for a lighter home screen.',
+    },
+    {
+      icon: 'Dark',
+      materialIcon: 'dark-mode',
+      title: 'Dark icon',
+      description: 'Dark launcher icon for a quieter home screen.',
+    },
+  ];
 
 export default function AppIconScreen() {
   const { colors } = useAppTheme();
@@ -37,9 +37,14 @@ export default function AppIconScreen() {
   const [selectedIcon, setSelectedIcon] = useState<IconName>('Light');
   const [changingIcon, setChangingIcon] = useState<IconName | null>(null);
 
-  const icons = getIcon();
 
-  console.log('AVAILABLE ICON ', icons);
+  useEffect(() => {
+    (async () => {
+      const icons = await getIcon();
+      console.log('AVAILABLE ICON ', icons);
+    })()
+  }, [])
+
   useEffect(() => {
     let mounted = true;
 
@@ -63,6 +68,8 @@ export default function AppIconScreen() {
   }, []);
 
   const handleChangeIcon = async (icon: IconName) => {
+    console.log("ICON NAME ", icon);
+
     if (Platform.OS !== 'android' && Platform.OS !== 'ios') {
       dispatch(
         showSnackbar({
@@ -76,7 +83,8 @@ export default function AppIconScreen() {
     setChangingIcon(icon);
 
     try {
-      await changeIcon(icon);
+      const response = await changeIcon(icon);
+      console.log("ICON CHANGE RESPONSE ", response);
       setSelectedIcon(icon);
       dispatch(
         showSnackbar({

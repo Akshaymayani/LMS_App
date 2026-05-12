@@ -351,6 +351,76 @@ export default function ProfileScreen() {
           <DetailRow label="Email" value={user.email} />
           <DetailRow label="Role" value={user.role ?? 'Learner'} />
         </View>
+        <View
+          style={[
+            styles.panel,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              marginTop: 24,
+            },
+            makeShadow(colors.shadow, 10),
+          ]}
+        >
+          <View style={styles.panelHeader}>
+            <View style={[styles.iconShell, { backgroundColor: colors.surfaceRaised }]}>
+              <MaterialIcons color={colors.accent} name="speed" size={22} />
+            </View>
+            <View style={styles.panelCopy}>
+              <AppText variant="headline">Performance Testing</AppText>
+              <AppText tone="muted">Compare list implementations rendering the infinite scroll catalog.</AppText>
+            </View>
+          </View>
+
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push('/list-test/flatlist')}
+            style={({ pressed }) => [
+              styles.settingsRow,
+              styles.settingsButton,
+              { opacity: pressed ? 0.76 : 1, borderBottomColor: colors.border },
+            ]}
+          >
+            <View style={styles.settingsCopy}>
+              <AppText>FlatList Result</AppText>
+              <AppText variant="caption" tone="muted">React Native's built-in FlatList</AppText>
+            </View>
+            <MaterialIcons color={colors.textMuted} name="chevron-right" size={24} />
+          </Pressable>
+
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push('/list-test/flashlist')}
+            style={({ pressed }) => [
+              styles.settingsRow,
+              styles.settingsButton,
+              { opacity: pressed ? 0.76 : 1, borderBottomColor: colors.border },
+            ]}
+          >
+            <View style={styles.settingsCopy}>
+              <AppText>FlashList Result</AppText>
+              <AppText variant="caption" tone="muted">Shopify's high-performance FlashList</AppText>
+            </View>
+            <MaterialIcons color={colors.textMuted} name="chevron-right" size={24} />
+          </Pressable>
+
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push('/list-test/legendlist')}
+            style={({ pressed }) => [
+              styles.settingsRow,
+              styles.settingsButton,
+              { opacity: pressed ? 0.76 : 1 },
+            ]}
+          >
+            <View style={styles.settingsCopy}>
+              <AppText>LegendList Result</AppText>
+              <AppText variant="caption" tone="muted">LegendApp's LegendList</AppText>
+            </View>
+            <MaterialIcons color={colors.textMuted} name="chevron-right" size={24} />
+          </Pressable>
+        </View>
+
       </ScrollView>
     </SafeAreaView>
   );

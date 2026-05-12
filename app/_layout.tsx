@@ -12,8 +12,34 @@ import { ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { LogBox, StyleSheet, View } from 'react-native';
 import 'react-native-reanimated';
+import * as Sentry from '@sentry/react-native';
+
+Sentry.init({
+  dsn: "https://75cb0cb6b4502f824819ea4e862b1a63@o4511366333464576.ingest.us.sentry.io/4511366372720640",
+
+  // Adds more context data to events (IP address, cookies, user, etc.)
+  // For more information, visit: https://docs.sentry.io/platforms/react-native/data-management/data-collected/
+  sendDefaultPii: true,
+
+  // Enable Logs
+  enableLogs: true,
+
+  // Configure Session Replay
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1,
+  integrations: [Sentry.mobileReplayIntegration(), Sentry.feedbackIntegration()],
+
+  // uncomment the line below to enable Spotlight (https://spotlightjs.com)
+  // spotlight: __DEV__,
+});
+
+
+
+
+
+LogBox.ignoreAllLogs(true);
 
 function RootNavigator() {
   const dispatch = useAppDispatch();
@@ -24,7 +50,7 @@ function RootNavigator() {
   const { colors, navigationTheme, scheme } = useAppTheme();
   const isAuthenticated = hasValidAuthSession(auth);
 
-  useNetwork();
+  // useNetwork();
 
   useEffect(() => {
     dispatch(hydrateAuth());
@@ -105,6 +131,14 @@ function RootNavigator() {
               }}
             />
             <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Details' }} />
+            <Stack.Screen
+              name="list-test/[type]"
+              options={{
+                title: 'List Performance',
+                headerShown: true,
+                headerBackTitle: 'Profile',
+              }}
+            />
           </Stack.Protected>
         </Stack>
         <NetworkSnackbar />
@@ -114,13 +148,13 @@ function RootNavigator() {
   );
 }
 
-export default function RootLayout() {
+export default Sentry.wrap(function RootLayout() {
   return (
     <AppProviders>
       <RootNavigator />
     </AppProviders>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

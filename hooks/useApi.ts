@@ -281,10 +281,10 @@ export function useInfiniteCoursesQuery(limit = 10) {
       // Safely check pagination - the field is 'nextPage' not 'hasNextPage'
       const nextPage = safeGet(lastPage, 'nextPage', false);
       const currentPage = safeGet(lastPage, 'page', 0);
-      
+
       // nextPage can be boolean or number
       const hasMorePages = typeof nextPage === 'number' ? nextPage > 0 : Boolean(nextPage);
-      
+
       if (hasMorePages) {
         const nextPageNumber = typeof nextPage === 'number' ? nextPage : currentPage! + 1;
         // console.log(`[useInfiniteCoursesQuery] Will fetch page ${nextPageNumber}`);
@@ -301,7 +301,7 @@ export function useInfiniteCoursesQuery(limit = 10) {
     if (!productsQuery.data?.pages || !Array.isArray(productsQuery.data.pages)) {
       return [];
     }
-    
+
     const flattenedProducts = productsQuery.data.pages
       .flatMap((page) => safeGet<Product[]>(page, 'data', []))
       .filter(Boolean) ?? [];

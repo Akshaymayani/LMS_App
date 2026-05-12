@@ -20,12 +20,16 @@ import { router } from 'expo-router';
 import { startTransition, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
+  Button,
   KeyboardAvoidingView, Platform, Pressable,
   RefreshControl,
   ScrollView,
   TextInput,
   View
 } from 'react-native';
+import * as Sentry from '@sentry/react-native';
+
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function CoursesScreen() {
@@ -41,27 +45,6 @@ export default function CoursesScreen() {
   const styles = useMemo(() => CatalogPageStyles(), []);
 
 
-  useEffect(() => {
-
-    const getProductImage = async () => {
-      try {
-        const response: any = await catalogApi.getProductImage();
-        console.log("Product image response:", response);
-        // setProductImage(response);
-
-      } catch (error) {
-        console.error("Error fetching product image:", error);
-      }
-    }
-
-    getProductImage();
-
-  }, [])
-  useEffect(() => {
-    if (catalogQuery?.courses) {
-      catalogQuery?.courses?.forEach((course) => syncBookmarkedCourse(course));
-    }
-  }, [catalogQuery.courses, syncBookmarkedCourse]);
 
   const filteredCourses = useMemo(() => {
     if (!catalogQuery?.courses || catalogQuery.courses.length === 0) {
@@ -104,6 +87,29 @@ export default function CoursesScreen() {
 
     return Math.round(total / values.length);
   }, [progressMap]);
+
+
+
+  useEffect(() => {
+    const getProductImage = async () => {
+      try {
+        const response = await catalogApi.getProductImage();
+        if (response) {
+          setProductImage(response);
+        }
+      } catch (error) {
+        console.error("Error fetching product image:", error);
+      }
+    }
+    getProductImage();
+  }, [])
+
+  useEffect(() => {
+    if (catalogQuery?.courses) {
+      catalogQuery?.courses?.forEach((course) => syncBookmarkedCourse(course));
+    }
+  }, [catalogQuery.courses, syncBookmarkedCourse]);
+
 
   const refreshCatalog = async () => {
     await Promise.all([featuredQuery.refetch(), catalogQuery.refetch()]);
@@ -175,7 +181,10 @@ export default function CoursesScreen() {
                 <AppText variant="display" tone="inverse">
                   What will you master today?
                 </AppText>
-
+                <Button title='Try Test!' onPress={() => {
+                  Alert.alert("EXCEPTION !", "Details are tracked in sentry");
+                  Sentry.captureException(new Error('First error'))
+                }} />
                 <AppText tone="inverse">
                   {isConnected
                     ? 'Infinite FreeAPI pages, cached images, offline bookmarks, and progress-aware course cards tuned for a premium learning flow.'
@@ -346,6 +355,7 @@ export default function CoursesScreen() {
               bookmarked={isBookmarked(item.id)}
               course={item}
               index={index}
+              productImage={productImage}
               onPress={() => router.push(`/course/${item.id}`)}
               onToggleBookmark={() => {
                 toggleBookmark(item);

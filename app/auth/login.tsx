@@ -41,7 +41,7 @@ export default function LoginScreen() {
   });
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : "height"}
         style={styles.flex}
@@ -67,7 +67,7 @@ export default function LoginScreen() {
                 Learn in motion. Ship skills faster.
               </AppText>
               <AppText style={styles.heroBody} tone="inverse">
-               Unlock your potential with guided learning.
+                Unlock your potential with guided learning.
               </AppText>
               <View style={styles.heroStatRow}>
                 <MiniBadge label="Secure auth" value="JWT" />

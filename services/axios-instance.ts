@@ -22,7 +22,8 @@ function extractMessage(error: AxiosError<{ message?: string }>) {
   }
 
   if (!error.response) {
-    return 'Network connection lost. Please check your internet and try again.';
+    console.error("Axios Request Error:", error);
+    return error.message || 'Network connection lost. Please check your internet and try again.';
   }
 
   if (error.response.status >= 500) {
@@ -78,10 +79,8 @@ export function initializeAxiosInterceptors() {
     }
   );
 
-  // Response interceptor - handle errors comprehensively
   axiosInstance.interceptors.response.use(
     (response) => {
-      // Ensure response data is valid before returning
       if (!response.data) {
         return Promise.reject(
           new ApiClientError('Received empty response from server')
@@ -92,7 +91,6 @@ export function initializeAxiosInterceptors() {
     async (error: AxiosError<{ message?: string }>) => {
       const normalizedError = normalizeAxiosError(error);
 
-      // Handle 401 Unauthorized - session expired
       if (error.response?.status === 401) {
         await clearStoredSession();
         store.dispatch(clearSessionState());
@@ -103,7 +101,6 @@ export function initializeAxiosInterceptors() {
           })
         );
       }
-      // Handle network errors
       else if (normalizedError.isNetworkError) {
         console.warn('[Network Error]', normalizedError.message);
         store.dispatch(
@@ -113,7 +110,6 @@ export function initializeAxiosInterceptors() {
           })
         );
       }
-      // Handle server errors (5xx)
       else if (error.response?.status && error.response.status >= 500) {
         console.warn('[Server Error]', normalizedError.message);
         store.dispatch(
@@ -123,12 +119,9 @@ export function initializeAxiosInterceptors() {
           })
         );
       }
-      // Handle client errors (4xx) - but not 401 which is handled above
       else if (error.response?.status && error.response.status >= 400) {
         console.warn('[Client Error]', normalizedError.message);
-        // Don't show snackbar for every 4xx error, let the caller handle it
       }
-
       return Promise.reject(normalizedError);
     }
   );
